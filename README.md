@@ -10,11 +10,17 @@ Collection of [solida-core]() useful scripts for accessory and supplementary fil
 
 
 
+## Download TOOLKIT:
+TOOLKIT is a Git repository, to download it type:
+
+```
+git clone https://github.com/solida-core/toolkit.git
+cd toolkit
+```
 
 
 
-
-
+##Script MANUALS:
 
 
 ### reference_organizer.py
