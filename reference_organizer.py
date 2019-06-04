@@ -2,16 +2,9 @@
 
 import os
 import sys
-import subprocess
 import argparse
 import ftplib
 import logging
-
-#ftp.ncbi.nlm.nih.gov
-with FTP("ftp.broadinstitute.org") as ftp:
-    ftp.login("gsapubftp-anonymous")
-    ftp.dir("bundle/hg19/")
-
 
 
 class App(object):
@@ -26,76 +19,49 @@ class App(object):
             self.logger.info("ALERT: '--force' flag activated: using existing folder")
         else:
             self.logger.info("Creating reference folder tree at {}".format(self.reference_dir))
-            os.mkdir(os.path.join(self.reference_dir,"ucsc",self.release))
-
+            #os.mkdir(self.reference_dir)
+            os.makedirs(os.path.join(self.reference_dir,"ucsc",self.release,"known_variants"))
 
     def ftp_download(self):
-        os.chdir(os.path.join(self.reference_dir,"ucsc",self.release))
-        os.mkdir("known_variants")
-        # ftp = ftplib.FTP("ftp.ncbi.nlm.nih.gov", "anonymous", "")
-        # ftp.cwd("/1000genomes")
 
-        ftp = ftplib.FTP("ftp.broadinstitute.org", "gsapubftp-anonymous", "")
+        def exec_ftp(search_pattern=None,download_path=None):
+            i=search_pattern
+            for filename in ftp.nlst(i):
+                if filename not in downloaded:
+                    self.logger.info("Downloading {} ".format(filename))
+                    fhandle = open(os.path.join(download_path,filename), 'wb')
+                    print('Getting ' + filename)
+                    ftp.retrbinary('RETR ' + filename, fhandle.write)
+                    fhandle.close()
+                    self.logger.info("{}: download complete!".format(filename))
+                    downloaded.append(filename)
+                else:
+                    continue
+
+        try:
+            ftp = ftplib.FTP("ftp.broadinstitute.org", "gsapubftp-anonymous", "")
+        except ftplib.all_errors as e:
+            self.logger.info("ERROR: {} ".format(e))
+            self.logger.info("TRY AGAIN")
+
         ftp.cwd(os.path.join("bundle",self.release))
 
         downloaded = []
 
         if self.release == "hg19":
-            i="ucsc*"
-            for filename in ftp.nlst(i):
-                if filename not in downloaded:
-                    self.logger.info("Downloading {} ".format(filename))
-                    fhandle = open(filename, 'wb')
-                    print('Getting ' + filename)
-                    ftp.retrbinary('RETR ' + filename, fhandle.write)
-                    fhandle.close()
-                    self.logger.info("{}: download complete!".format(filename))
-                    downloaded.append(filename)
-                else:
-                    continue
+            exec_ftp(search_pattern="ucsc*",download_path=os.path.join(self.reference_dir,"ucsc",self.release))
         else:
-            i="Homo_sapiens*"
-            for filename in ftp.nlst(i):
-                if filename not in downloaded:
-                    self.logger.info("Downloading {} ".format(filename))
-                    fhandle = open(filename, 'wb')
-                    print('Getting ' + filename)
-                    ftp.retrbinary('RETR ' + filename, fhandle.write)
-                    fhandle.close()
-                    self.logger.info("{}: download complete!".format(filename))
-                    downloaded.append(filename)
-                else:
-                    continue
+            exec_ftp(search_pattern="Homo_sapiens*", download_path=os.path.join(self.reference_dir, "ucsc", self.release))
 
         known_list = ["1000G_*", "Mills_and_1000G_gold*", "dbsnp*", "hapmap_3.3.*"]
 
         for i in known_list:
-            for filename in ftp.nlst(i):
-                if filename not in downloaded:
-                    self.logger.info("Downloading {} ".format(filename))
-                    fhandle = open(os.path.join("known_variants",filename), 'wb')
-                    print('Getting ' + filename)
-                    ftp.retrbinary('RETR ' + filename, fhandle.write)
-                    fhandle.close()
-                    self.logger.info("{}: download complete!".format(filename))
-                    downloaded.append(filename)
-                else:
-                    continue
+            exec_ftp(search_pattern=i, download_path=os.path.join(self.reference_dir, "ucsc", self.release,"known_variants"))
+#        ftp.quit()
 
-        #print("\nDownloaded " + str(len(downloaded)) + " files:")
-        self.logger.info("Downloaded {} files:".format(str(len(downloaded)))
-        print(*downloaded, sep="\n")
-
-        ftp.quit()
-
-
-
-
-
-    def run(self):
-        self.logger.info("Creating reference in folder: {}".format(self.reference_dir)
-
-
+        self.logger.info("Downloaded {} files:".format(str(len(downloaded))))
+        for downloaded_element in downloaded:
+            self.logger.info(downloaded_element)
 
 
 def get_logger(name, level="WARNING", filename=None, mode="a"):
@@ -141,7 +107,7 @@ def main(argv):
     logger = get_logger('main', level='INFO')
     workflow = App(args=args, logger=logger)
 
-    workflow.run()
+    workflow.ftp_download()
 
 
 if __name__ == '__main__':
