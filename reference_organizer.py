@@ -134,7 +134,7 @@ def make_parser():
                         help="Number of connection attempts to perform in case of busy FTP server [default: 5]")
 
     parser.add_argument('--force', action='store_true',
-                        help="Write merged fastq files in the directory even if it exists (Default: FALSE)")
+                        help="Download files in the directory even if they exists (Default: FALSE)")
 
     return parser
 
